@@ -1,6 +1,6 @@
 # macdefault
 
-A modern macOS command-line utility for switching default file associations for office document formats.
+A macOS command-line utility for switching default file associations by file extension.
 
 ## Overview
 

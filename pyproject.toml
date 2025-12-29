@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "macdefault"
-version = "0.2.0"
-description = "A macOS command-line utility for switching default file associations for office document formats"
+version = "0.2.1"
+description = "A macOS command-line utility for switching default file associations by file extension"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
