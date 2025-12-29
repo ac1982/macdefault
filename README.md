@@ -22,7 +22,7 @@ A modern macOS command-line utility for switching default file associations for 
 - **macOS only** (uses LaunchServices and duti)
 - **Python 3.10+**
 - **duti** - Install via: `brew install duti`
-- **uv** - Modern Python package manager ([installation](https://github.com/astral-sh/uv))
+- **uv** - Python package manager ([installation](https://github.com/astral-sh/uv))
 - **Python deps** - Installed automatically by uv (click, questionary, wcwidth)
 
 ## Installation
@@ -228,15 +228,6 @@ uv add --dev ruff black
 uv run black macdefault.py
 uv run ruff check macdefault.py
 ```
-
-## Why uv?
-
-This project uses [uv](https://github.com/astral-sh/uv) for modern Python package management:
-
-- ⚡ **Fast**: 10-100x faster than pip
-- 🔒 **Reliable**: Lock file support for reproducible installs
-- 🎯 **Simple**: Single tool for packages, tools, and Python versions
-- 🚀 **Modern**: Built with Rust, designed for the current Python ecosystem
 
 ## Technical Details
 
