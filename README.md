@@ -4,201 +4,146 @@ A macOS command-line utility for switching default file associations by file ext
 
 ## Overview
 
-`macdefault` manages default application associations for common office document formats using macOS's `duti` utility. Switch entire office suites with a single command instead of manually changing file associations through Finder.
+`macdefault` changes the default app for any file extension using macOS LaunchServices and `duti`. It also includes preset switches for common office suites.
 
-**Supported file extensions:**
-- Word: `doc`, `docx`
-- Excel: `xls`, `xlsx`
-- PowerPoint: `ppt`, `pptx`
-- Other: `rtf`, `csv`
+What it does:
+- Pick a default app for any extension interactively (`--ext=mp3`).
+- Switch office presets in one command (`--microsoft`, `--wps`, `--apple`).
+- Show current defaults and installed bundle IDs for troubleshooting.
 
-**Supported application suites:**
-- **Microsoft Office** - Word, Excel, PowerPoint
-- **WPS Office** - Single application (Kingsoft)
-- **Apple iWork** - Pages, Numbers, Keynote, TextEdit
+Preset extensions (suite mode):
+- `doc`, `docx`, `xls`, `xlsx`, `ppt`, `pptx`, `rtf`, `csv`
 
 ## Requirements
 
-- **macOS only** (uses LaunchServices and duti)
-- **Python 3.10+**
-- **duti** - Install via: `brew install duti`
-- **uv** - Python package manager ([installation](https://github.com/astral-sh/uv))
-- **Python deps** - Installed automatically by uv (click, questionary, wcwidth)
+- macOS
+- Python 3.10+
+- duti (`brew install duti`)
 
-## Installation
-
-### Quick Start with uv
+## Quick Start with uv
 
 ```bash
-# Install uv if you haven't already
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Install duti
 brew install duti
-
-# Run directly without installation
-uv run macdefault --help
-```
-
-### Install as a Tool
-
-```bash
-# Install globally with uv
-uv tool install .
-
-# Now you can run it anywhere
+uv tool install macdefault
 macdefault --help
 ```
 
-### Development Setup
+## Installation
+
+### pip
 
 ```bash
-# Clone the repository
+python -m pip install macdefault
+macdefault --help
+```
+
+### From source (development)
+
+```bash
 git clone https://github.com/ac1982/macdefault.git
 cd macdefault
-
-# uv will automatically create a virtual environment and install dependencies
 uv sync
-
-# Run in development mode
 uv run macdefault --help
 ```
 
 ## Usage
 
-### Switch to a Suite
+### Set any extension
 
-Switch all supported file types to Microsoft Office:
+Choose a default app for a specific extension:
 ```bash
-uv run macdefault --microsoft
+macdefault --ext=mp3
+```
+
+Show candidates without making changes:
+```bash
+macdefault --ext=mp3 --show
+```
+
+Interactive selection:
+- Up/Down arrows to move
+- Enter to confirm
+- 1-9 to quick select
+- q to cancel
+
+### Switch office suites
+
+Switch all preset extensions to Microsoft Office:
+```bash
+macdefault --microsoft
 # or
-uv run macdefault --office
+macdefault --office
 ```
 
 Switch to WPS Office:
 ```bash
-uv run macdefault --wps
+macdefault --wps
 # or
-uv run macdefault --kingsoft
+macdefault --kingsoft
 ```
 
-Switch to Apple iWork suite:
+Switch to Apple iWork:
 ```bash
-uv run macdefault --apple
-```
-
-### Interactive Mode
-
-Choose a default app for a specific extension:
-```bash
-uv run macdefault --ext=doc
-```
-
-This will:
-1. Show the current default handler
-2. List all installed apps that support `.doc` files
-3. Let you select one from the list using Up/Down arrows or by typing a number (1-9), press q to cancel
-4. Apply the changes
-
-Show candidates without making changes:
-```bash
-uv run macdefault --ext=doc --show
+macdefault --apple
 ```
 
 ### Diagnostics
 
-Print a summary of installed office suites:
+Print a summary of installed suites:
 ```bash
-uv run macdefault --print-bundle-ids
+macdefault --print-bundle-ids
 ```
 
 Full diagnostic output (bundle IDs + current defaults):
 ```bash
-uv run macdefault --doctor
+macdefault --doctor
 ```
 
-This shows:
-- Which office apps are installed
-- Their bundle IDs and paths
-- Current default handlers for all managed extensions
+### Additional options
 
-### Additional Options
-
-**Dry run** (preview changes without applying):
+Dry run (preview changes without applying):
 ```bash
-uv run macdefault --microsoft --dry-run
+macdefault --microsoft --dry-run
 ```
 
-**Disable verification** (skip checking if changes succeeded):
+Disable verification (skip checking if changes succeeded):
 ```bash
-uv run macdefault --wps --no-verify
+macdefault --wps --no-verify
 ```
 
-**Fail fast** (stop on first error):
+Fail fast (stop on first error):
 ```bash
-uv run macdefault --apple --fail-fast
+macdefault --apple --fail-fast
 ```
 
 ## How It Works
 
-1. **Discovery**: Scans common application directories (`/Applications`, etc.) for installed apps
-2. **UTI Matching**: Uses macOS Uniform Type Identifiers to find apps that support each file extension
-3. **LaunchServices**: Registers apps with `lsregister` when needed
-4. **duti**: Applies the default handler settings via `duti -s <bundle-id> <extension> all`
-5. **Verification**: Checks that changes were applied correctly
+1. Discovery: scans common application directories (`/Applications`, etc.)
+2. UTI matching: uses macOS Uniform Type Identifiers to find apps that support each extension
+3. LaunchServices: registers apps with `lsregister` when needed
+4. duti: applies defaults via `duti -s <bundle-id> <extension> all`
+5. Verification: checks that changes were applied correctly
 
-### Special Handling
+### Special handling
 
-- **WPS Office**: Uses a stable path (`/Applications/wpsoffice.app`) since LaunchServices name lookup can be unreliable
-- **Microsoft Word .doc files**: Includes automatic repair logic if the default doesn't stick, re-registering with LaunchServices and applying multiple UTI variants
-
-## Examples
-
-### Typical Workflow
-
-Check what's currently set:
-```bash
-uv run macdefault --doctor
-```
-
-Switch to Microsoft Office:
-```bash
-uv run macdefault --microsoft
-```
-
-Verify the changes:
-```bash
-uv run macdefault --doctor
-```
-
-### Choose Custom Handler for One Extension
-
-Set a different app for `.md` files:
-```bash
-uv run macdefault --ext=md
-```
-
-See what handles `.csv` without changing:
-```bash
-uv run macdefault --ext=csv --show
-```
+- WPS Office: uses a stable path (`/Applications/wpsoffice.app`) since LaunchServices name lookup can be unreliable
+- Microsoft Word `.doc`: includes repair logic if the default does not stick
 
 ## Troubleshooting
 
-**"duti not found"**
+"duti not found"
 - Install via: `brew install duti`
 
-**"Microsoft Office apps not fully resolvable"**
+"Microsoft Office apps not fully resolvable"
 - Ensure Word, Excel, and PowerPoint are installed in `/Applications`
-- Try running `uv run macdefault --print-bundle-ids` to see what's detected
+- Try running `macdefault --print-bundle-ids` to see what is detected
 
-**Changes don't stick for .doc files**
-- The script includes automatic repair logic for this common issue
-- It re-registers Word with LaunchServices and tries multiple UTI identifiers
+Changes do not stick for `.doc`
+- The script re-registers Word with LaunchServices and tries multiple UTI identifiers
 
-**App not appearing in --ext list**
+App not appearing in `--ext` list
 - The app must declare support for that file type in its Info.plist
-- As a workaround, use Finder: right-click file → Open With → Other → Change All
+- Workaround: Finder right-click file -> Open With -> Other -> Change All
 
 ## Project Structure
 
@@ -213,14 +158,14 @@ macdefault/
 
 ## Development
 
-### Running Tests
+### Running tests
 
 ```bash
 # Add tests in the future
 uv run pytest
 ```
 
-### Code Formatting
+### Code formatting
 
 ```bash
 # Add formatters as dev dependencies if needed
@@ -235,7 +180,7 @@ uv run ruff check macdefault.py
 - Falls back to parsing `Info.plist` directly
 - Filters out overly-generic UTIs (`public.data`, `public.item`, `public.content`)
 - Supports wide Unicode characters in table output via `wcwidth`
-- Interactive mode supports ESC to cancel (when running in a TTY)
+- Interactive mode supports q to cancel
 
 ## License
 
