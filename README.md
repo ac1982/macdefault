@@ -54,7 +54,7 @@ macdefault --help
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/macdefault.git
+git clone https://github.com/ac1982/macdefault.git
 cd macdefault
 
 # uv will automatically create a virtual environment and install dependencies
