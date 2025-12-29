@@ -20,7 +20,7 @@ A modern macOS command-line utility for switching default file associations for 
 ## Requirements
 
 - **macOS only** (uses LaunchServices and duti)
-- **Python 3.8+**
+- **Python 3.10+**
 - **duti** - Install via: `brew install duti`
 - **uv** - Modern Python package manager ([installation](https://github.com/astral-sh/uv))
 - **Python deps** - Installed automatically by uv (click, questionary, wcwidth)
