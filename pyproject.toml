@@ -36,9 +36,9 @@ dependencies = [
 macdefault = "macdefault:main"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/macdefault"
-Repository = "https://github.com/yourusername/macdefault"
-Issues = "https://github.com/yourusername/macdefault/issues"
+Homepage = "https://github.com/ac1982/macdefault"
+Repository = "https://github.com/ac1982/macdefault"
+Issues = "https://github.com/ac1982/macdefault/issues"
 
 [dependency-groups]
 dev = []
