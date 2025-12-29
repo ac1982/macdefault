@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "macdefault"
+version = "0.1.0"
+description = "A macOS command-line utility for switching default file associations for office document formats"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
+]
+keywords = ["macos", "file-associations", "duti", "office", "utilities"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Utilities",
+]
+
+dependencies = [
+    "click>=8.0.0",
+    "wcwidth>=0.2.0",
+]
+
+[project.scripts]
+macdefault = "macdefault:main"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/macdefault"
+Repository = "https://github.com/yourusername/macdefault"
+Issues = "https://github.com/yourusername/macdefault/issues"
+
+[dependency-groups]
+dev = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["macdefault.py"]
