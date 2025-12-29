@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "macdefault"
-version = "0.2.3"
+version = "1.0.0"
 description = "A macOS command-line utility for switching default file associations by file extension"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -42,6 +42,7 @@ Issues = "https://github.com/ac1982/macdefault/issues"
 dev = [
     "build>=1.2.0",
     "twine>=5.0.0",
+    "pytest>=8.0.0",
 ]
 
 [tool.hatch.build.targets.wheel]

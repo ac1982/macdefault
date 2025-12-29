@@ -297,9 +297,11 @@ def apps_supporting_extension(ext: str) -> List[Dict[str, object]]:
                     if matched:
                         utis.extend(matched)
                     elif match_by_ext:
-                        utis.extend(it_list)
+                        # Filter out generic UTIs to avoid hijacking unrelated file types
+                        utis.extend([u for u in it_list if u not in GENERIC_UTI_CUTOFF])
                 else:
-                    utis.extend(it_list)
+                    # Filter out generic UTIs to avoid hijacking unrelated file types
+                    utis.extend([u for u in it_list if u not in GENERIC_UTI_CUTOFF])
         if declared:
             info2 = dict(info)
             info2["utis"] = sorted(set(utis))
@@ -647,13 +649,20 @@ def interactive_set_default_for_extension(duti: str, ext: str, dry_run: bool) ->
     click.secho(f"Selected: {selected['name']} ({selected['bundle_id']})", fg="green", bold=True)
 
     if not dry_run:
-        ok, err = lsregister_force_register_app(str(selected["path"]))
-        if not ok:
-            click.secho(f"(!) lsregister failed: {err}", fg="yellow")
+        path = str(selected["path"])
+        # Only call lsregister if we have a valid .app path
+        if path and path != "(path unknown)" and shutil.os.path.exists(path) and path.endswith(".app"):
+            ok, err = lsregister_force_register_app(path)
+            if not ok:
+                click.secho(f"(!) lsregister failed: {err}", fg="yellow")
+        elif path == "(path unknown)":
+            click.secho(f"(!) Skipping lsregister: app path could not be determined", fg="yellow")
 
     keys: List[str] = [f".{e}"]
     for k in (selected.get("utis") or []):
-        keys.append(str(k))
+        # Skip generic UTIs that would hijack unrelated file types
+        if str(k) not in GENERIC_UTI_CUTOFF:
+            keys.append(str(k))
 
     seen = set()
     keys_uniq: List[str] = []
@@ -932,7 +941,8 @@ def collect_mismatches(
     for ext in ALL_EXTS:
         _, current = duti_default_info(duti, ext)
         expected = mapping[ext]
-        if current and current != expected:
+        # Treat query failures (None) as mismatches to avoid masking failures
+        if current != expected:
             mismatches.append((ext, expected, current))
     return mismatches
 
@@ -949,7 +959,8 @@ def verify_mapping(
         line, current = duti_default_info(duti, ext)
         click.echo(line)
         expected = mapping[ext]
-        if current and current != expected:
+        # Treat query failures (None) as mismatches to avoid masking failures
+        if current != expected:
             mismatches.append((ext, expected, current))
 
     if not dry_run and suite_name == "microsoft":
