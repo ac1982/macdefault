@@ -28,13 +28,15 @@ Notes:
 - WPS name lookup via AppleScript can be unreliable; we prefer /Applications/wpsoffice.app if present.
 """
 
+import os
 import platform
 import plistlib
-import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
+from importlib import metadata
 from typing import Dict, List, Tuple, Optional
 
 import click
@@ -91,6 +93,36 @@ def find_duti() -> str:
     if not duti:
         raise click.ClickException("`duti` not found. Install it with: brew install duti")
     return duti
+
+
+def _version_from_pyproject() -> Optional[str]:
+    pyproject = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pyproject.toml")
+    if not os.path.exists(pyproject):
+        return None
+    try:
+        with open(pyproject, "r", encoding="utf-8") as f:
+            in_project = False
+            for line in f:
+                stripped = line.strip()
+                if stripped.startswith("["):
+                    in_project = stripped == "[project]"
+                    continue
+                if not in_project:
+                    continue
+                match = re.match(r'version\s*=\s*["\']([^"\']+)["\']', stripped)
+                if match:
+                    return match.group(1)
+    except OSError:
+        return None
+    return None
+
+
+def _get_version() -> str:
+    try:
+        return metadata.version("macdefault")
+    except metadata.PackageNotFoundError:
+        file_version = _version_from_pyproject()
+        return file_version or "unknown"
 
 
 def normalize_ext(ext: str) -> str:
@@ -978,6 +1010,7 @@ def verify_mapping(
 # --------------------------- CLI ---------------------------
 
 @click.command(context_settings=dict(help_option_names=["-h", "--help"]))
+@click.version_option(version=_get_version(), prog_name="macdefault")
 @click.option("--microsoft", "--office", "suite_ms", is_flag=True, help="Switch to Microsoft Office suite.")
 @click.option("--wps", "--kingsoft", "suite_wps", is_flag=True, help="Switch to WPS Office suite.")
 @click.option("--apple", "suite_apple", is_flag=True, help="Switch to Apple iWork suite.")
