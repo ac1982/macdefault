@@ -23,6 +23,7 @@ Notes:
 - macOS only
 - Requires `duti`: brew install duti
 - Requires `click`: python3 -m pip install click
+- Requires `questionary`: python3 -m pip install questionary
 - Requires `wcwidth` (for aligned table output): python3 -m pip install wcwidth
 - WPS name lookup via AppleScript can be unreliable; we prefer /Applications/wpsoffice.app if present.
 """
@@ -37,6 +38,8 @@ import tempfile
 from typing import Dict, List, Tuple, Optional
 
 import click
+import questionary
+from prompt_toolkit.key_binding import KeyBindings
 from wcwidth import wcswidth
 
 
@@ -406,6 +409,16 @@ def _format_candidate_line(
     return f"{mark}{idx:2d}) {app['name']} | {app['path']} | {app['bundle_id']}{uti_hint}"
 
 
+def _format_candidate_title(
+    app: Dict[str, object],
+    current_bundle_id: Optional[str],
+) -> str:
+    utis = app.get("utis") or []
+    uti_hint = f" | {utis[0]}" if utis else ""
+    mark = "*" if current_bundle_id and app.get("bundle_id") == current_bundle_id else " "
+    return f"{mark} {app['name']} | {app['path']} | {app['bundle_id']}{uti_hint}"
+
+
 def merge_default_candidate(
     apps: List[Dict[str, object]],
     default_info: Optional[Dict[str, str]],
@@ -454,6 +467,93 @@ def lsregister_force_register_app(app_path: str) -> Tuple[bool, str]:
     if rc != 0:
         return False, (err or out or "unknown error")
     return True, ""
+
+
+def prompt_index_with_questionary(
+    apps: List[Dict[str, object]],
+    current_bundle_id: Optional[str],
+) -> Optional[int]:
+    """
+    Read a selection interactively using questionary.
+    - Up/Down arrows change selection (TTY only).
+    - ESC/Ctrl+C cancels.
+    """
+    max_index = len(apps)
+    if max_index < 1:
+        return None
+
+    selected_idx = 1
+    if current_bundle_id:
+        for idx, app in enumerate(apps, start=1):
+            if app.get("bundle_id") == current_bundle_id:
+                selected_idx = idx
+                break
+
+    choices: List[questionary.Choice] = []
+    for idx, app in enumerate(apps, start=1):
+        shortcut = str(idx) if idx <= 9 else None
+        choices.append(
+            questionary.Choice(
+                title=_format_candidate_title(app, current_bundle_id),
+                value=idx,
+                shortcut_key=shortcut,
+            )
+        )
+    choices.append(
+        questionary.Choice(
+            title="Cancel",
+            value=None,
+            shortcut_key="q",
+        )
+    )
+
+    kb = KeyBindings()
+
+    @kb.add("escape")
+    @kb.add("c-c")
+    @kb.add("c-d")
+    def _cancel(_event) -> None:
+        _event.app.exit(result=None)
+
+    question = questionary.select(
+        "Select an app",
+        choices=choices,
+        default=selected_idx,
+        use_shortcuts=True,
+    )
+
+    def _coerce_choice(result: object) -> Optional[int]:
+        if isinstance(result, int):
+            return result
+        if isinstance(result, str):
+            s = result.strip()
+            if s.isdigit():
+                return int(s)
+            return None
+        return None
+
+    try:
+        return _coerce_choice(question.ask(kbi=kb))
+    except TypeError:
+        try:
+            response = questionary.prompt(
+                [
+                    {
+                        "type": "select",
+                        "name": "choice",
+                        "message": "Select an app",
+                        "choices": choices,
+                        "default": selected_idx,
+                        "use_shortcuts": True,
+                    }
+                ],
+                kbi=kb,
+            )
+            return _coerce_choice(response.get("choice") if response else None)
+        except TypeError:
+            return _coerce_choice(question.ask())
+    except KeyboardInterrupt:
+        return None
 
 
 def prompt_index_with_esc(max_index: int) -> Optional[int]:
@@ -526,12 +626,19 @@ def interactive_set_default_for_extension(duti: str, ext: str, dry_run: bool) ->
             "Tip: In Finder, right-click a file -> Open With -> Other..., then 'Change All...'."
         )
 
-    if current_bid:
-        click.echo("(* = current default)")
-    for idx, a in enumerate(apps, start=1):
-        click.echo(_format_candidate_line(idx, a, current_bid))
-
-    choice = prompt_index_with_esc(len(apps))
+    use_tty_selector = sys.stdin.isatty() and sys.stdout.isatty()
+    if use_tty_selector:
+        if current_bid:
+            click.echo("(* = current default)")
+        click.echo("Use Up/Down arrows to select, Enter to confirm, or press q to cancel.")
+        click.echo("Tip: Press 1-9 for quick select.")
+        choice = prompt_index_with_questionary(apps, current_bid)
+    else:
+        if current_bid:
+            click.echo("(* = current default)")
+        for idx, a in enumerate(apps, start=1):
+            click.echo(_format_candidate_line(idx, a, current_bid))
+        choice = prompt_index_with_esc(len(apps))
     if choice is None:
         click.secho("Cancelled.", fg="yellow")
         return

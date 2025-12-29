@@ -23,6 +23,7 @@ A modern macOS command-line utility for switching default file associations for 
 - **Python 3.8+**
 - **duti** - Install via: `brew install duti`
 - **uv** - Modern Python package manager ([installation](https://github.com/astral-sh/uv))
+- **Python deps** - Installed automatically by uv (click, questionary, wcwidth)
 
 ## Installation
 
@@ -96,7 +97,7 @@ uv run macdefault --ext=doc
 This will:
 1. Show the current default handler
 2. List all installed apps that support `.doc` files
-3. Let you select one from the list
+3. Let you select one from the list using Up/Down arrows or by typing a number (1-9), press q to cancel
 4. Apply the changes
 
 Show candidates without making changes:
