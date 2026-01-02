@@ -66,10 +66,11 @@ APP_SEARCH_DIRS = [
     "/Applications",
     "/System/Applications",
     "/System/Applications/Utilities",
-    shutil.os.path.expanduser("~/Applications"),
+    os.path.expanduser("~/Applications"),
 ]
 
 GENERIC_UTI_CUTOFF = {"public.data", "public.item", "public.content"}
+DEFAULT_SUBPROCESS_TIMEOUT = 10
 
 
 # --------------------------- helpers ---------------------------
@@ -77,8 +78,12 @@ GENERIC_UTI_CUTOFF = {"public.data", "public.item", "public.content"}
 def _run(cmd: List[str]) -> Tuple[int, str, str]:
     """Run command and return (returncode, stdout, stderr). Raise on OS-level exec errors."""
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True)
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=DEFAULT_SUBPROCESS_TIMEOUT)
         return p.returncode, p.stdout.strip(), p.stderr.strip()
+    except subprocess.TimeoutExpired:
+        raise click.ClickException(
+            f"Command timed out after {DEFAULT_SUBPROCESS_TIMEOUT}s: {' '.join(cmd)}"
+        )
     except OSError as e:
         raise click.ClickException(f"Failed to execute: {' '.join(cmd)}\nOS error: {e}")
 
@@ -195,7 +200,7 @@ def app_info_from_app_path(app_path: str) -> Optional[Dict[str, object]]:
         return None
     name = info.get("CFBundleDisplayName") or info.get("CFBundleName")
     if not name:
-        base = shutil.os.path.basename(p)
+        base = os.path.basename(p)
         name = base[:-4] if base.lower().endswith(".app") else base
     doc_types = info.get("CFBundleDocumentTypes") or []
     if not isinstance(doc_types, list):
@@ -269,11 +274,11 @@ def iter_app_paths(max_depth: int = 3) -> List[str]:
     apps: List[str] = []
     seen = set()
     for base in APP_SEARCH_DIRS:
-        if not base or not shutil.os.path.isdir(base):
+        if not base or not os.path.isdir(base):
             continue
         base = base.rstrip("/")
-        for dirpath, dirnames, _filenames in shutil.os.walk(base):
-            rel_depth = dirpath[len(base) :].count(shutil.os.sep)
+        for dirpath, dirnames, _filenames in os.walk(base):
+            rel_depth = dirpath[len(base) :].count(os.sep)
             if rel_depth > max_depth:
                 dirnames[:] = []
                 continue
@@ -370,7 +375,7 @@ def get_app_info(app_name: str) -> Dict[str, object]:
     """
     # Special-case WPS: name lookup can fail; use stable path first.
     if app_name == "WPS Office":
-        if shutil.os.path.exists(WPS_APP_PATH):
+        if os.path.exists(WPS_APP_PATH):
             bid = bundle_id_from_app_path(WPS_APP_PATH)
             if bid:
                 return {"name": app_name, "installed": True, "bundle_id": bid, "paths": [WPS_APP_PATH]}
@@ -495,7 +500,7 @@ def lsregister_force_register_app(app_path: str) -> Tuple[bool, str]:
         "/System/Library/Frameworks/CoreServices.framework/Frameworks/"
         "LaunchServices.framework/Support/lsregister"
     )
-    if not shutil.os.path.exists(lsregister):
+    if not os.path.exists(lsregister):
         return False, "lsregister not found"
     rc, out, err = _run([lsregister, "-f", app_path])
     if rc != 0:
@@ -683,7 +688,7 @@ def interactive_set_default_for_extension(duti: str, ext: str, dry_run: bool) ->
     if not dry_run:
         path = str(selected["path"])
         # Only call lsregister if we have a valid .app path
-        if path and path != "(path unknown)" and shutil.os.path.exists(path) and path.endswith(".app"):
+        if path and path != "(path unknown)" and os.path.exists(path) and path.endswith(".app"):
             ok, err = lsregister_force_register_app(path)
             if not ok:
                 click.secho(f"(!) lsregister failed: {err}", fg="yellow")
@@ -847,7 +852,7 @@ def suite_mapping(suite: str) -> Dict[str, str]:
 
     if suite == "wps":
         bid_wps = None
-        if shutil.os.path.exists(WPS_APP_PATH):
+        if os.path.exists(WPS_APP_PATH):
             bid_wps = bundle_id_from_app_path(WPS_APP_PATH)
         bid_wps = bid_wps or bundle_id_of_app("WPS Office")
 
@@ -925,7 +930,7 @@ def resolve_word_app_path(word_bundle_id: str) -> Optional[str]:
     word_paths = paths_for_bundle_id(word_bundle_id, limit=1)
     if word_paths:
         return word_paths[0]
-    if shutil.os.path.exists("/Applications/Microsoft Word.app"):
+    if os.path.exists("/Applications/Microsoft Word.app"):
         return "/Applications/Microsoft Word.app"
     return None
 
