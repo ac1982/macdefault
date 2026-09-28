@@ -1,7 +1,7 @@
 # macdefault — agent interface
 
 A macOS-only Swift CLI for default file associations. No Python or duti runtime.
-This document describes version 2.1, JSON schemaVersion 1.
+This document describes Swift version 1.0.0, JSON schemaVersion 1.
 
 ## Workflow
 
@@ -44,7 +44,7 @@ Envelope:
 before producing a result. `ok` is false for partial execution failure, but completed
 outcomes are still in `data`. Do not assume data exists when ok is false.
 Additive fields may appear within schemaVersion 1; ignore unknown fields. A breaking
-change requires a new schema version. The old 2.0 unversioned payload is now under data.
+change requires a new schema version. Command payloads are nested under data.
 
 ### list
 

@@ -5,6 +5,12 @@ No Python, `duti`, shell commands, or background service required at runtime.
 
 ## Build and install
 
+Prebuilt universal binaries are available in [GitHub Releases](https://github.com/ac1982/macdefault/releases).
+The release workflow signs with Developer ID and requires Apple notarization before
+publishing. The `.pkg` includes a stapled ticket and installs to `/usr/local/bin`;
+the archive contains the same signed executable for manual installation. Checksums
+are included as `SHA256SUMS`. See [release configuration](docs/releasing.md).
+
 Requires macOS 12 or later. Building requires a Swift 6 toolchain (Xcode 16 or later)
 and an internet connection for the first dependency resolution.
 
@@ -143,8 +149,7 @@ Writes use Apple’s NSWorkspace API. macOS may request confirmation before the
 write completes; `--no-input` controls terminal prompts, not system consent.
 
 See [llms.txt](llms.txt) for the complete agent contract and field descriptions.
-The 2.1 JSON envelope replaces the unversioned 2.0 output; previous payload fields
-now live under `data`.
+The Swift release uses JSON schemaVersion 1; command payloads live under `data`.
 
 ### Office presets
 
@@ -251,10 +256,10 @@ version accepts every association.
 
 ## Migration from Python 1.x
 
-Version 2 is a new Swift implementation and command interface. There is no Python
+Swift 1.0.0 starts a new implementation and command interface. There is no Python
 package or compatibility wrapper in this source tree.
 
-| 1.x | 2.x |
+| Python 1.x | Swift 1.0.0 |
 | --- | --- |
 | `--ext txt --show` | `list txt` |
 | `--ext txt` | `set txt` |

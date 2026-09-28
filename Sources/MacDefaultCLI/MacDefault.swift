@@ -21,7 +21,7 @@ struct MacDefault: AsyncParsableCommand {
       Exit codes: 0 success, 1 failed, 2 input, 64 syntax, 130 cancelled.
       Use --verbose for bundle IDs and content types; --plain for plain text.
       """,
-    version: "2.1.0",
+    version: "1.0.0",
     subcommands: [List.self, SetDefault.self, Suite.self, Doctor.self]
   )
 
