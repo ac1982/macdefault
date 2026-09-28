@@ -30,7 +30,7 @@ jobs:
           mkdir -p release-package dist
           install -m 755 "$binary_dir/macdefault" release-package/macdefault
           test "$(release-package/macdefault --version)" = "$GITHUB_REF_NAME"
-          lipo release-package/macdefault -verify_arch arm64 x86_64
+          lipo -archs release-package/macdefault | python3 -c 'import sys; assert set(sys.stdin.read().split()) == {"arm64", "x86_64"}'
           cp LICENSE README.md llms.txt release-package/
       - name: Sign, notarize, and verify
         env:
