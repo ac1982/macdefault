@@ -139,9 +139,8 @@ Failures before a result is available omit `data`. Help/version remain plain tex
 Partial failures preserve `data.outcomes`, with per-type `changed`, `unchanged`,
 `failed`, or `skipped` states. Check `ok` before using data; `--no-verify` yields
 `verified: false` even when the write succeeded. JSON never contains ANSI escapes.
-Writes use the same LaunchServices interface as duti, directly from Swift.
-The plain-text round trip verified actual file opens, but the user confirmed seeing and clicking a
-confirmation dialog; unattended operation has not been established.
+Writes use Apple’s NSWorkspace API. macOS may request confirmation before the
+write completes; `--no-input` controls terminal prompts, not system consent.
 
 See [llms.txt](llms.txt) for the complete agent contract and field descriptions.
 The 2.1 JSON envelope replaces the unversioned 2.0 output; previous payload fields
@@ -177,10 +176,12 @@ Apps are discovered through `NSWorkspace`, supplemented by one bounded scan of
 associations; selecting an app path does not guarantee a particular copy will be
 launched when multiple installed apps share that bundle ID.
 
-Writes use `LSSetDefaultRoleHandlerForContentType` with all roles, matching duti.
+Writes use `NSWorkspace.setDefaultApplication(at:toOpen:)`, Apple’s replacement
+for the deprecated `LSSetDefaultRoleHandlerForContentType`.
 A target app is registered with LaunchServices once per execution when needed.
 Verification compares effective default bundle IDs every 250 ms, allowing five
-seconds for propagation. A timeout is reported as failure, not success. Finder is
+seconds for propagation after the setter completes. This does not limit the time
+spent awaiting system consent. A timeout is reported as failure, not success. Finder is
 not restarted.
 
 A batch is **not transactional**: successful changes remain applied if a later one

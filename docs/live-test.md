@@ -124,3 +124,13 @@ The earlier 10:59 run also has system-log evidence: CoreServicesUIAgent received
 Thus importing and calling the same public function as duti does not establish
 identical consent behavior for these binaries. The cause of that difference has
 not yet been determined. The earlier no-confirmation claims are withdrawn.
+
+## Return to the recommended API
+
+At the user’s request, the adapter was restored to
+`NSWorkspace.setDefaultApplication(at:toOpen:)`. Apple marks the old setter
+deprecated, and the SDK explicitly names this NSWorkspace method as its replacement.
+The five-second post-write verification remains; it does not time out system consent.
+The historical legacy-backend runs above do not describe the current implementation.
+This restoration is validated by the regular suite and a universal release build;
+no additional real-default mutation is performed for this change.

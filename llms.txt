@@ -21,10 +21,9 @@ All apps must be installed. `macdefault doctor --json` inspects them and the def
 
 Never launch bare `macdefault`: on a terminal it opens the human menu. Always provide
 a subcommand and `--json`. Put flags after the subcommand. `set --json` requires --app.
-`--no-input` also disables terminal prompts without requiring JSON. Writes call the
-same LaunchServices interface as duti directly. The user confirmed seeing and clicking a
-confirmation dialog during the live test; unattended operation is not established.
-`--no-input` disables terminal prompts, not operating-system dialogs.
+`--no-input` also disables terminal prompts without requiring JSON. Writes use
+NSWorkspace.setDefaultApplication; macOS may require confirmation before it
+completes. These flags do not suppress operating-system consent dialogs.
 
 ## Output contract
 
@@ -81,7 +80,8 @@ the target means the association was already correct when inspected.
     }
 
 By default changes are verified every 250 ms for up to five seconds of waiting per
-content type. A verification timeout reports failure even if the write returned success. `--no-verify` skips post-write
+content type after the setter completes. This timeout does not cover waiting for
+system consent. A verification timeout reports failure even if the write returned success. `--no-verify` skips post-write
 checks and reports verified=false. `--fail-fast` stops after the first failure; the
 remaining outcomes are skipped. Otherwise later associations are attempted.
 

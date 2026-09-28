@@ -75,15 +75,9 @@ public final class NativeAssociationSystem: AssociationSystem {
   }
 
   public func setDefault(_ application: Application, for type: ContentType) async throws {
-    let identifier = try nativeType(type).identifier
-    // Use the same public LaunchServices API as duti, without an external process.
-    // The service polls the effective default because propagation is asynchronous.
-    let status = LSSetDefaultRoleHandlerForContentType(
-      identifier as CFString, LSRolesMask.all, application.bundleID as CFString)
-    guard status == noErr else {
-      throw UserError(
-        "Cannot set \(application.name) for \(identifier) (OSStatus \(status)).")
-    }
+    // Apple's replacement for LSSetDefaultRoleHandlerForContentType.
+    // macOS may request user consent before the asynchronous call completes.
+    try await workspace.setDefaultApplication(at: application.url, toOpen: nativeType(type))
   }
 
   private func nativeType(_ type: ContentType) throws -> UTType {

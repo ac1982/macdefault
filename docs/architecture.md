@@ -32,9 +32,10 @@ plain-text exceptions. The contract and exit codes are documented in `llms.txt`.
 
 System-facing operations run on the main actor. The tool operates on small batches;
 parallel writes would complicate ordering and failure reporting without a useful
-throughput benefit. The native setter calls LSSetDefaultRoleHandlerForContentType
-with all roles, matching duti without an external executable. Verification suspends
-between reads to let system changes propagate.
+throughput benefit. The native setter awaits NSWorkspace.setDefaultApplication,
+Apple’s replacement for the deprecated LaunchServices setter. The OS can request
+consent before completion. Verification then suspends between reads to let system
+changes propagate; its five-second window does not cover the consent wait.
 
 ## Data flow
 
