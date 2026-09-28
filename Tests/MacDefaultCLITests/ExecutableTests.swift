@@ -76,7 +76,7 @@ struct TerminalScenario: Sendable {
   @Test func helpAndVersion() throws {
     let version = try run(["--version"])
     #expect(version.status == 0)
-    #expect(version.text.trimmingCharacters(in: .whitespacesAndNewlines) == "1.0.0")
+    #expect(version.text.trimmingCharacters(in: .whitespacesAndNewlines) == "1.0.1")
     let help = try run(["--help"])
     #expect(help.status == 0)
     #expect(help.text.contains("SUBCOMMANDS:"))

@@ -1,7 +1,7 @@
 # macdefault — agent interface
 
 A macOS-only Swift CLI for default file associations. No Python or duti runtime.
-This document describes Swift version 1.0.0, JSON schemaVersion 1.
+This document describes Swift version 1.0.1, JSON schemaVersion 1.
 
 ## Workflow
 

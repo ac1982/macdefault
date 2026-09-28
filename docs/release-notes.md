@@ -1,14 +1,14 @@
-The first Swift release replaces the Python implementation with a native macOS CLI.
+macdefault 1.0.1 fixes three issues found during review.
 
-- Interactive terminal menu and searchable application picker.
-- Versioned JSON output, explicit exit codes, previews, and post-write verification.
-- Native NSWorkspace API; no Python or duti runtime dependency.
-- Universal executable for Apple Silicon and Intel, macOS 12 or later.
+- Sanitize application metadata and errors before rendering terminal output, including parse failures and verbose previews.
+- Resolve bundle identifiers ending in `.app` while retaining application-path selection.
+- Limit live-test application-open checks to 60 seconds so a stalled launch can reach default restoration; ignore late callbacks safely.
+- Add regression tests, including a read-only timeout self-test in CI.
+
+The native NSWorkspace association API and JSON schemaVersion 1 remain unchanged.
 
 Download the `.pkg` for a Developer ID signed and notarized installer with a stapled
 ticket. It installs `macdefault` into `/usr/local/bin`. The `.tar.gz` contains the same
-signed executable for manual installation, including `~/.local/bin`. Verify downloads
-using `SHA256SUMS`. macOS may still request confirmation when changing default apps.
-
-Swift starts at version `1.0.0`; the existing `v1.0.2` tag belongs to the Python edition.
-The command interface changed: use `macdefault --help` and the migration table in README.
+signed universal executable for manual installation, including `~/.local/bin`.
+Verify downloads using `SHA256SUMS`. Requires macOS 12 or later. macOS may still
+request confirmation when changing default apps.
