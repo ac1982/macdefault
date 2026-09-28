@@ -77,7 +77,19 @@ public final class NativeAssociationSystem: AssociationSystem {
   public func setDefault(_ application: Application, for type: ContentType) async throws {
     // Apple's replacement for LSSetDefaultRoleHandlerForContentType.
     // macOS may request user consent before the asynchronous call completes.
-    try await workspace.setDefaultApplication(at: application.url, toOpen: nativeType(type))
+    let contentType = try nativeType(type)
+    // Older SDKs import the async overload as nonisolated. Invoke the callback
+    // overload on the main actor instead of sending NSWorkspace across actors.
+    try await withCheckedThrowingContinuation {
+      (continuation: CheckedContinuation<Void, any Error>) in
+      workspace.setDefaultApplication(at: application.url, toOpen: contentType) { error in
+        if let error {
+          continuation.resume(throwing: error)
+        } else {
+          continuation.resume()
+        }
+      }
+    }
   }
 
   private func nativeType(_ type: ContentType) throws -> UTType {
