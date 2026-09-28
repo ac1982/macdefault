@@ -14,6 +14,10 @@ jobs:
         run: swift format lint --strict --recursive Sources Tests Package.swift
       - name: Test
         run: swift test --enable-code-coverage
+      - name: Live harness timeout regression (no association changes)
+        run: |
+          swiftc -swift-version 6 -parse-as-library scripts/live-association-test.swift -o .build/live-association-test
+          .build/live-association-test --self-test-timeout
       - name: Release build
         run: swift build -c release
       - name: Read-only smoke checks

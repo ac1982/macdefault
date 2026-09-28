@@ -31,13 +31,74 @@ struct OpenReceipt: Codable {
   let processID: Int32
 }
 
+/// A callback may never arrive, or arrive after the deadline. Resume only once.
+@MainActor
+final class OpenDeadline {
+  private var continuation: CheckedContinuation<NSRunningApplication, any Error>?
+  private var timer: Task<Void, Never>?
+
+  init(_ continuation: CheckedContinuation<NSRunningApplication, any Error>) {
+    self.continuation = continuation
+  }
+
+  func arm(nanoseconds: UInt64) {
+    timer = Task { @MainActor in
+      do { try await Task.sleep(nanoseconds: nanoseconds) } catch { return }
+      finish(.failure(CheckFailure(message: "Application launch timed out; restoring defaults")))
+    }
+  }
+
+  func finish(_ result: Result<NSRunningApplication, any Error>) {
+    guard let continuation else { return }
+    self.continuation = nil
+    timer?.cancel()
+    timer = nil
+    continuation.resume(with: result)
+  }
+}
+
 @main
 struct LiveAssociationTest {
   @MainActor static func main() async {
-    do { try await run() } catch {
+    do {
+      if CommandLine.arguments.dropFirst() == ["--self-test-timeout"] {
+        try await testOpenDeadline()
+      } else {
+        try await run()
+      }
+    } catch {
       FileHandle.standardError.write(Data("LIVE TEST FAILED: \(error.localizedDescription)\n".utf8))
       exit(1)
     }
+  }
+
+  @MainActor static func testOpenDeadline() async throws {
+    var pending: OpenDeadline?
+    do {
+      _ = try await withCheckedThrowingContinuation {
+        (continuation: CheckedContinuation<NSRunningApplication, any Error>) in
+        let deadline = OpenDeadline(continuation)
+        pending = deadline
+        deadline.arm(nanoseconds: 10_000_000)
+        // Simulate an API that never invokes its completion handler.
+      }
+      throw CheckFailure(message: "Expected launch timeout")
+    } catch let error as CheckFailure where error.message.contains("launch timed out") {
+      // This is the same error path that proceeds to restoration in run().
+    }
+    // A late completion must not resume the continuation a second time.
+    pending?.finish(.failure(CheckFailure(message: "late completion")))
+    let expected = NSRunningApplication.current
+    let application = try await withCheckedThrowingContinuation {
+      (continuation: CheckedContinuation<NSRunningApplication, any Error>) in
+      let deadline = OpenDeadline(continuation)
+      deadline.arm(nanoseconds: 10_000_000)
+      deadline.finish(.success(expected))
+    }
+    guard application === expected else {
+      throw CheckFailure(message: "Launch success was not returned")
+    }
+    print("PASS: stalled launch reaches restoration; late completion is ignored")
   }
 
   @MainActor static func run() async throws {
@@ -101,7 +162,22 @@ struct LiveAssociationTest {
       let configuration = NSWorkspace.OpenConfiguration()
       configuration.addsToRecentItems = false
       // Deliberately do not supply an application URL: macOS must choose the default.
-      let application = try await NSWorkspace.shared.open(file, configuration: configuration)
+      let application = try await withCheckedThrowingContinuation {
+        (continuation: CheckedContinuation<NSRunningApplication, any Error>) in
+        let deadline = OpenDeadline(continuation)
+        deadline.arm(nanoseconds: 60_000_000_000)
+        NSWorkspace.shared.open(file, configuration: configuration) { application, error in
+          Task { @MainActor in
+            if let error {
+              deadline.finish(.failure(error))
+            } else if let application {
+              deadline.finish(.success(application))
+            } else {
+              deadline.finish(.failure(CheckFailure(message: "Launch returned no application")))
+            }
+          }
+        }
+      }
       let receipt = OpenReceipt(
         file: file, expectedBundleID: bundleID,
         openedBundleID: application.bundleIdentifier ?? "", processID: application.processIdentifier

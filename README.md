@@ -243,6 +243,11 @@ swiftc -parse-as-library scripts/live-association-test.swift -o .build/live-asso
 .build/live-association-test "$HOME/.local/bin/macdefault"
 ```
 
+Each application-open check has a 60-second deadline; a stalled launch proceeds
+to restoration. The deadline does not cancel an already submitted macOS open request.
+Run `.build/live-association-test --self-test-timeout` to check timeout handling
+without opening apps or changing associations.
+
 The test prints its temporary evidence directory and attempts restoration before
 reporting an intermediate failure. Keep it running through restoration; forcibly
 killing the test itself cannot guarantee cleanup. It requires a single pre-existing
