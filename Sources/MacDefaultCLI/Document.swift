@@ -76,7 +76,7 @@ enum EntryPoint {
         failure = AgentError.classify(error)
       } else {
         let code = MacDefault.exitCode(for: error).rawValue
-        if code == 0 || !wantsJSON { MacDefault.exit(withError: error) }
+        if code == 0 { MacDefault.exit(withError: error) }
         failure = AgentError(kind: "input", message: MacDefault.message(for: error), exitCode: code)
       }
       if wantsJSON {

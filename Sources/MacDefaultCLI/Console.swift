@@ -4,7 +4,8 @@ import Foundation
 struct TerminalStyle {
   var color = false
   func paint(_ text: String, _ code: String) -> String {
-    color ? "\u{1B}[\(code)m\(text)\u{1B}[0m" : text
+    let text = TerminalText.clean(text)
+    return color ? "\u{1B}[\(code)m\(text)\u{1B}[0m" : text
   }
   func bold(_ text: String) -> String { paint(text, "1") }
   func muted(_ text: String) -> String { paint(text, "2") }
@@ -88,6 +89,6 @@ enum Console {
   }
   static func lines(_ lines: [String]) { write(lines.joined(separator: "\n") + "\n") }
   static func error(_ text: String) {
-    FileHandle.standardError.write(Data("macdefault: \(text)\n".utf8))
+    FileHandle.standardError.write(Data("macdefault: \(TerminalText.clean(text))\n".utf8))
   }
 }

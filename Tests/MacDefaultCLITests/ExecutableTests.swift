@@ -147,6 +147,17 @@ struct TerminalScenario: Sendable {
     #expect(error["kind"] as? String == (expected == 1 ? "failed" : "input"))
   }
 
+  @Test func errorsSanitizeTerminalControls() throws {
+    for arguments in [
+      ["set", "txt", "--app", "/tmp/missing\u{1B}[2J.app", "--dry-run"],
+      ["list", "bad\u{1B}[2J"],
+    ] {
+      let result = try run(arguments)
+      #expect(result.status != 0)
+      #expect(!result.text.contains("\u{1B}"))
+    }
+  }
+
   @Test func noInputNeverWaitsForSelection() throws {
     let result = try run(["set", "txt", "--no-input"])
     #expect(result.status == 2)

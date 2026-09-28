@@ -87,6 +87,25 @@ import Testing
     #expect(detailed.contains("test.first") && detailed.contains("test.second"))
   }
 
+  @Test func verboseMetadataCannotInjectTerminalControls() throws {
+    let malicious = "test.bad\u{1B}[2J\nspoofed"
+    let app = Application(
+      name: malicious, bundleID: malicious,
+      url: URL(fileURLWithPath: "/Fake.app"))
+    let change = AssociationChange(
+      extensions: [try FileExtension("txt")],
+      type: ContentType(identifier: malicious, extensions: ["txt", malicious]),
+      previous: app, target: app)
+    let display = try DisplayOptions.parse(["--plain", "--verbose"])
+    let lines =
+      Output.planLines(AssociationPlan(changes: [change]), display: display)
+      + Output.reportLines(
+        ExecutionReport(outcomes: [
+          ChangeOutcome(change: change, state: .changed, verified: true, error: nil)
+        ]), display: display)
+    #expect(lines.allSatisfy { !$0.contains("\u{1B}") && !$0.contains("\n") })
+  }
+
   @Test func partialFailuresRemainVisibleInCompactOutput() throws {
     let app = Application(
       name: "Editor", bundleID: "test.editor", url: URL(fileURLWithPath: "/Editor.app"))
