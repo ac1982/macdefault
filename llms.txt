@@ -1,0 +1,129 @@
+# macdefault — agent interface
+
+A macOS-only Swift CLI for default file associations. No Python or duti runtime.
+This document describes version 2.1, JSON schemaVersion 1.
+
+## Workflow
+
+1. Inspect: `macdefault list txt --json`.
+2. Pick an installed application's `data.candidates[].bundleID`.
+3. Preview: `macdefault set txt --app com.apple.TextEdit --dry-run --json`.
+4. Apply: `macdefault set txt --app com.apple.TextEdit --json`.
+5. Check `ok` and `data.outcomes[].verified`; inspect again if necessary.
+
+`--app` also accepts an absolute .app path. Quote paths containing spaces. Prefer
+bundle IDs taken from discovery instead of guessing display names. App associations
+are identified by bundle ID; duplicate installations cannot be distinguished reliably.
+
+Office batches: `macdefault suite microsoft|wps|apple --dry-run --json`, then remove
+`--dry-run` to apply. The suite name is one of the three literals, not a pipe expression.
+All apps must be installed. `macdefault doctor --json` inspects them and the defaults.
+
+Never launch bare `macdefault`: on a terminal it opens the human menu. Always provide
+a subcommand and `--json`. Put flags after the subcommand. `set --json` requires --app.
+`--no-input` also disables terminal prompts without requiring JSON. Writes call the
+same LaunchServices interface as duti directly; the tested plain-text round trip
+requires no system confirmation click.
+
+## Output contract
+
+With --json, stdout is exactly one JSON document on success and on ordinary
+parse/runtime failure. Do not parse human output or stderr. --help and --version are
+plain-text informational exceptions. A force-killed process may not emit a document.
+
+Envelope:
+
+    schemaVersion: 1
+    ok: boolean
+    command: "list" | "set" | "suite" | "doctor" | "macdefault"
+    input?: string
+    data?: command-specific result
+    error?: { kind: "input" | "failed" | "cancelled", message: string, exitCode: integer }
+
+`input` is omitted on some early failures. `data` is omitted if the command failed
+before producing a result. `ok` is false for partial execution failure, but completed
+outcomes are still in `data`. Do not assume data exists when ok is false.
+Additive fields may appear within schemaVersion 1; ignore unknown fields. A breaking
+change requires a new schema version. The old 2.0 unversioned payload is now under data.
+
+### list
+
+    data.ext: normalized extension without the dot
+    data.defaults[]: { type: ContentType, application?: Application }
+    data.candidates[]: Application
+
+Application: `{ name, bundleID, url }`, where url is an absolute file URL.
+ContentType: `{ identifier, extensions: [string] }`.
+No `application` field means no current default for that type.
+Candidates include all current defaults, deduplicated by bundle ID.
+
+### set / suite with --dry-run
+
+    data.changes[]: {
+      extensions: [normalized extension],
+      type: ContentType,
+      previous?: Application,
+      target: Application
+    }
+
+No writes, registration, or verification are performed. Planning still reads current
+system state. `previous` is absent if no default exists. A previous bundle ID equal to
+the target means the association was already correct when inspected.
+
+### set / suite execution
+
+    data.outcomes[]: {
+      change: the same change object as the plan,
+      state: "changed" | "unchanged" | "failed" | "skipped",
+      verified: boolean,
+      error?: string
+    }
+
+By default changes are verified every 250 ms for up to five seconds of waiting per
+content type. A verification timeout reports failure even if the write returned success. `--no-verify` skips post-write
+checks and reports verified=false. `--fail-fast` stops after the first failure; the
+remaining outcomes are skipped. Otherwise later associations are attempted.
+
+### doctor
+
+    data.applications[]: { name, application?: Application, error?: string }
+    data.defaults[]: the same extension-status objects as list, with candidates empty
+    data.errors: [string]
+
+An optional office app being absent is not itself a command failure. A failure to
+query a default is reported in data.errors and makes ok=false.
+
+## Exit codes
+
+- 0: success (including preview or already-correct defaults).
+- 1 / failed: app resolution, registration, system write, or verification failed.
+- 2 / input: required terminal interaction was unavailable or disabled; supply --app.
+- 64 / input: invalid arguments/options; fix command syntax or values.
+- 130 / cancelled: interactive selection or Swift task cancelled.
+
+With --json, error.exitCode matches the process exit code. In shell pipelines use
+`set -o pipefail`; downstream commands can otherwise hide a failing exit code.
+
+## Scope and repeatability
+
+macOS assigns defaults by content type, not independently by extension. One UTI may
+cover multiple extensions (txt and text, for example). Read type.extensions in the
+preview to see this scope. Only types directly tagged with the requested extension
+are changed; generic base types and conformance ancestors are never written.
+An extension may map to several UTIs; all matching specific types are included.
+
+A batch is not a transaction. Successful changes remain if later ones fail. There is
+no automatic rollback. Repeating the same request is idempotent when the defaults
+are already correct. Execution rechecks each current default before deciding to
+write; a preview is not a saved or replayable transaction.
+
+Example shell inspection:
+
+    macdefault list txt --json | jq '.data.candidates[] | {name, bundleID}'
+    macdefault set txt --app com.apple.TextEdit --dry-run --json | jq '.data.changes'
+
+A guarded execution consumer:
+
+    macdefault set txt --app com.apple.TextEdit --json | jq 'if .ok then .data.outcomes else .error end'
+
+Use the returned outcomes rather than inferring success from a human-readable line.
