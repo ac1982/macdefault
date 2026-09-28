@@ -22,8 +22,9 @@ All apps must be installed. `macdefault doctor --json` inspects them and the def
 Never launch bare `macdefault`: on a terminal it opens the human menu. Always provide
 a subcommand and `--json`. Put flags after the subcommand. `set --json` requires --app.
 `--no-input` also disables terminal prompts without requiring JSON. Writes call the
-same LaunchServices interface as duti directly; the tested plain-text round trip
-requires no system confirmation click.
+same LaunchServices interface as duti directly. The user confirmed seeing and clicking a
+confirmation dialog during the live test; unattended operation is not established.
+`--no-input` disables terminal prompts, not operating-system dialogs.
 
 ## Output contract
 

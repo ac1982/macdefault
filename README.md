@@ -140,7 +140,8 @@ Partial failures preserve `data.outcomes`, with per-type `changed`, `unchanged`,
 `failed`, or `skipped` states. Check `ok` before using data; `--no-verify` yields
 `verified: false` even when the write succeeded. JSON never contains ANSI escapes.
 Writes use the same LaunchServices interface as duti, directly from Swift.
-The tested plain-text round trip completes without a system confirmation click.
+The plain-text round trip verified actual file opens, but the user confirmed seeing and clicking a
+confirmation dialog; unattended operation has not been established.
 
 See [llms.txt](llms.txt) for the complete agent contract and field descriptions.
 The 2.1 JSON envelope replaces the unversioned 2.0 output; previous payload fields
@@ -228,7 +229,8 @@ switches to TextEdit (or Code if TextEdit was already the default), opens anothe
 through macOS without specifying an app, restores the original default, and opens a
 third file. The receipts record the actual application's bundle ID and process ID.
 This is an opt-in local test, excluded from CI because it changes real preferences
-and opens GUI apps. The current backend passed it without a confirmation click.
+and opens GUI apps. A passing result verifies association and opening behavior;
+it does not detect dialogs or prove that no human interaction occurred.
 
 ```sh
 swiftc -parse-as-library scripts/live-association-test.swift -o .build/live-association-test

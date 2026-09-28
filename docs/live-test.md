@@ -50,7 +50,9 @@ includes requesting user consent when necessary.
 
 A temporary diagnostic variant of the live-test harness used the exact old duti
 command for writes, retaining fresh macdefault queries and actual file-open
-receipts. No confirmation click was needed. Both writes returned in milliseconds
+receipts. The harness did not automate any confirmation clicks; it also did not
+monitor dialogs or human interaction, so absence of a prompt is not established.
+Both writes returned in milliseconds
 (about 14 ms and 7 ms). Actual opens verified Code → TextEdit → Code, and the
 final `.txt` and `.text` mappings matched the original Code mappings.
 
@@ -79,8 +81,8 @@ seconds of waiting before reporting a verification timeout. No duti subprocess
 is used. The regular suite passed all 71 tests, including delayed propagation,
 timeout, and cancellation during verification.
 
-The unmodified live-test harness ran against the universal release binary. No
-confirmation click was needed. Actual file opens returned:
+The unmodified live-test harness ran against the universal release binary at
+approximately 10:59 on 2026-09-28. Actual file opens returned:
 
 | Stage | Actual application | Result |
 | --- | --- | --- |
@@ -94,3 +96,31 @@ to their saved Code defaults. Evidence:
 ```text
 /var/folders/4f/2v_4g8ds5tg_7x760026wb_c0000gn/T/macdefault-live-D272740C-5014-4DB9-B44E-167238A4F846
 ```
+
+## Correction: confirmation behavior remains unresolved
+
+After the final run, the user reported that a confirmation dialog appeared again.
+The harness records write results and actual open handlers, but does not record
+dialogs or user clicks. Therefore its PASS result cannot support the earlier claim
+that no confirmation was required. The installed binary imports the legacy
+LaunchServices setter; changing to that API alone has not established unattended
+operation. Dialog origin and whether human input affected the run remain unverified.
+
+## Observed repeat: confirmation still required
+
+The installed binary was tested again with the unmodified harness. The user
+explicitly confirmed seeing and clicking the confirmation dialog. The harness
+then reported PASS and restored Code. This is an attended success, not evidence
+of unattended execution.
+
+Evidence directory:
+
+```text
+/var/folders/4f/2v_4g8ds5tg_7x760026wb_c0000gn/T/macdefault-live-2F86587B-0DD9-4A3E-A9C3-AA67BFD95F33
+```
+
+The earlier 10:59 run also has system-log evidence: CoreServicesUIAgent received
+`CSUIChangeDefaultHandlerHandler` requests at 10:59:47.691 and 10:59:52.222.
+Thus importing and calling the same public function as duti does not establish
+identical consent behavior for these binaries. The cause of that difference has
+not yet been determined. The earlier no-confirmation claims are withdrawn.
