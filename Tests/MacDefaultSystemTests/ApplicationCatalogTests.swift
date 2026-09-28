@@ -136,6 +136,16 @@ struct TemporaryDirectory {
     #expect(try system.application(matching: app.url.path) == app)
   }
 
+  @Test func bundleIdentifierEndingInAppStillResolves() throws {
+    let directory = try TemporaryDirectory()
+    defer { directory.remove() }
+    let identifier = "test.macdefault.\(UUID().uuidString).app"
+    let url = try directory.app("Editor.app", plist: ["CFBundleIdentifier": identifier])
+    let system = NativeAssociationSystem(catalog: ApplicationCatalog(roots: [directory.url]))
+    #expect(try system.application(matching: identifier).url.path == url.standardizedFileURL.path)
+    #expect(try system.application(matching: url.path).url.path == url.standardizedFileURL.path)
+  }
+
   @Test func unknownAppFailsClearly() {
     #expect(throws: UserError.self) {
       try NativeAssociationSystem().application(matching: "test.macdefault.not-installed")

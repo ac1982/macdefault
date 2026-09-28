@@ -13,6 +13,11 @@ public final class NativeAssociationSystem: AssociationSystem {
     catalog = ApplicationCatalog()
   }
 
+  init(catalog: ApplicationCatalog) {
+    workspace = .shared
+    self.catalog = catalog
+  }
+
   public func contentTypes(for ext: FileExtension) throws -> [ContentType] {
     var native = UTType.types(tag: ext.value, tagClass: .filenameExtension, conformingTo: nil)
     if native.isEmpty, let dynamic = UTType(filenameExtension: ext.value) { native = [dynamic] }
@@ -46,7 +51,13 @@ public final class NativeAssociationSystem: AssociationSystem {
   }
 
   public func application(matching selector: String) throws -> Application {
-    let isPath = selector.contains("/") || selector.hasSuffix(".app")
+    // A bare name ending in .app may also be a valid bundle identifier.
+    let isPath = selector.contains("/")
+    if !isPath, selector.hasSuffix(".app"),
+      let record = ApplicationRecord.read(at: URL(fileURLWithPath: selector))
+    {
+      return record.application
+    }
     if isPath {
       let expanded = (selector as NSString).expandingTildeInPath
       let url = URL(fileURLWithPath: expanded).standardizedFileURL
